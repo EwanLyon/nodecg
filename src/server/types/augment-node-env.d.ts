@@ -14,5 +14,10 @@ declare namespace NodeJS {
 		 * This is set by the server core when under test.
 		 */
 		NODECG_TEST_PORT?: string;
+
+		/**
+		 * Tells NodeCG if it is running as a package or embedded
+		 */
+		NODECG_MODE?: 'package' | 'embedded';
 	}
 }

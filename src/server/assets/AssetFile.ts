@@ -3,8 +3,9 @@ import * as path from 'path';
 
 // Ours
 import type { NodeCG } from '../../types/nodecg';
+import { AssetsPath } from '../util/file-paths';
 
-const ASSETS_ROOT = path.join(process.env.NODECG_ROOT, 'assets');
+const ASSETS_ROOT = path.join(process.env.NODECG_ROOT, AssetsPath);
 
 export default class AssetFile implements NodeCG.AssetFile {
 	sum: string;

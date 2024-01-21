@@ -11,6 +11,7 @@ import { argv } from 'yargs';
 // Ours
 import { LogLevel } from '../../shared/logger-interface';
 import type { NodeCG } from '../../types/nodecg';
+import { LogsPath } from '../util/file-paths';
 
 function getConfigSchema(userConfig: Record<string, any>) {
 	return Joi.object({
@@ -50,7 +51,7 @@ function getConfigSchema(userConfig: Record<string, any>) {
 					.valid(...Object.values(LogLevel))
 					.default('info'),
 
-				path: Joi.string().default('logs/nodecg.log').description('The filepath to log to.'),
+				path: Joi.string().default(LogsPath).description('The filepath to log to.'),
 
 				timestamps: Joi.boolean().default(true).description('Whether to add timestamps to the file logging.'),
 

@@ -1,8 +1,8 @@
 {
-  "name": "nodecg",
+  "name": "nodecg-restructure",
   "description": "Dynamic broadcast graphics rendered in a browser",
   "main": "index.js",
-  "version": "2.1.12",
+  "version": "2.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/nodecg/nodecg.git"
@@ -17,6 +17,9 @@
     "dynamic",
     "broadcast"
   ],
+  "bin": {
+    "nodecg-restructure": "out/server/commands.js"
+  },
   "dependencies": {
     "@nodecg/json-schema-defaults": "^1.0.4",
     "@polymer/app-layout": "^3.0.0",
@@ -55,6 +58,7 @@
     "cheerio": "^1.0.0-rc.2",
     "chokidar": "^3.3.1",
     "clipboard": "^2.0.4",
+    "commander": "^11.1.0",
     "compression": "^1.7.4",
     "connect-typeorm": "^2.0.0",
     "cookie-parser": "^1.4.5",

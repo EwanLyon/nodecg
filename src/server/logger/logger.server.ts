@@ -10,6 +10,7 @@ import type * as Sentry from '@sentry/node';
 // Ours
 import type { LoggerInterface } from '../../shared/logger-interface';
 import { LogLevel } from '../../shared/logger-interface';
+import { LogsPath } from '../util/file-paths';
 
 type LoggerOptions = {
 	console: Partial<{
@@ -37,7 +38,7 @@ export default function (initialOpts: Partial<LoggerOptions> = {}, sentry: typeo
 	initialOpts = initialOpts || {};
 	initialOpts.console = initialOpts.console ?? {};
 	initialOpts.file = initialOpts.file ?? {};
-	initialOpts.file.path = initialOpts.file.path ?? 'logs/nodecg.log';
+	initialOpts.file.path = initialOpts.file.path ?? LogsPath;
 
 	const consoleTransport = new winston.transports.Console({
 		level: initialOpts.console.level ?? LogLevel.Info,

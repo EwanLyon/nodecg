@@ -1,5 +1,5 @@
 // Native
-import * as path from 'path';
+// import * as path from 'path';
 
 // Packages
 import * as semver from 'semver';
@@ -7,7 +7,7 @@ import * as semver from 'semver';
 // Ours
 import type { NodeCG } from '../../types/nodecg';
 
-export default function (pkg: NodeCG.PackageJSON, bundlePath: string): NodeCG.Manifest {
+export default function (pkg: NodeCG.PackageJSON, _: string): NodeCG.Manifest {
 	if (!semver.valid(pkg.version)) {
 		throw new Error(`${pkg.name}'s package.json must specify a valid version.`);
 	}
@@ -21,10 +21,10 @@ export default function (pkg: NodeCG.PackageJSON, bundlePath: string): NodeCG.Ma
 		throw new Error(`${pkg.name}'s package.json does not have a valid "nodecg.compatibleRange" property.`);
 	}
 
-	const bundleFolderName = path.parse(bundlePath).base;
-	if (bundleFolderName !== pkg.name) {
-		throw new Error(`${pkg.name}'s folder is named "${bundleFolderName}". Please rename it to "${pkg.name}".`);
-	}
+	// const bundleFolderName = path.parse(bundlePath).base;
+	// if (bundleFolderName !== pkg.name) {
+	// 	throw new Error(`${pkg.name}'s folder is named "${bundleFolderName}". Please rename it to "${pkg.name}".`);
+	// }
 
 	// Grab the standard properties from the package.json that we care about.
 	const manifest: NodeCG.Manifest = {

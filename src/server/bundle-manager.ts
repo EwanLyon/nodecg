@@ -14,6 +14,8 @@ import parseBundleGit from './bundle-parser/git';
 import createLogger from './logger';
 import type { NodeCG } from '../types/nodecg';
 import { TypedEmitter } from '../shared/typed-emitter';
+import isPackageMode from './util/is-package-mode';
+import { MultiBundlePath } from './util/file-paths';
 
 /**
  * Milliseconds
@@ -97,12 +99,14 @@ export default class BundleManager extends TypedEmitter<EventMap> {
 			this.emit('ready');
 		}, READY_WAIT_THRESHOLD);
 
-		bundlesPaths.forEach((bundlesPath) => {
+		let hasCheckedPackageRoot = false;
+
+		for (const bundlesPath of bundlesPaths) {
 			log.trace(`Loading bundles from ${bundlesPath}`);
 
 			// Create the "bundles" dir if it does not exist.
 			/* istanbul ignore if: We know this code works and testing it is tedious, so we don't bother to test it. */
-			if (!fs.existsSync(bundlesPath)) {
+			if (!isPackageMode && !fs.existsSync(bundlesPath)) {
 				fs.mkdirpSync(bundlesPath);
 			}
 
@@ -157,61 +161,85 @@ export default class BundleManager extends TypedEmitter<EventMap> {
 			// Do an initial load of each bundle in the "bundles" folder.
 			// During runtime, any changes to a bundle's "dashboard" folder will trigger a re-load of that bundle,
 			// as will changes to its `package.json`.
-			const bundleFolders = fs.readdirSync(bundlesPath);
-			bundleFolders.forEach((bundleFolderName) => {
-				const bundlePath = path.join(bundlesPath, bundleFolderName);
-				if (!fs.statSync(bundlePath).isDirectory()) {
-					return;
+
+			if (isPackageMode && !hasCheckedPackageRoot) {
+				hasCheckedPackageRoot = true;
+				setupBundle(bundlesPath);
+			}
+
+			const multiBundlePath = path.join(bundlesPath, MultiBundlePath);
+
+			if (fs.existsSync(multiBundlePath)) {
+				const bundleFolders = fs.readdirSync(multiBundlePath);
+				log.debug(`Reading folders in ${multiBundlePath}`);
+				log.debug(bundleFolders);
+				for (const bundleFolderName of bundleFolders) {
+					log.debug(bundleFolderName);
+					const bundlePath = path.join(multiBundlePath, bundleFolderName);
+
+					if (!fs.statSync(bundlePath).isDirectory()) {
+						return;
+					}
+
+					// Prevent attempting to load unwanted directories. Those specified above and all dot-prefixed.
+					if (blacklistedBundleDirectories.includes(bundleFolderName) || bundleFolderName.startsWith('.')) {
+						return;
+					}
+
+					if (nodecgConfig?.['bundles']?.disabled?.includes(bundleFolderName)) {
+						log.debug(`Not loading bundle ${bundleFolderName} as it is disabled in config`);
+						return;
+					}
+
+					if (
+						nodecgConfig?.['bundles']?.enabled &&
+						!nodecgConfig?.['bundles'].enabled.includes(bundleFolderName)
+					) {
+						log.debug(`Not loading bundle ${bundleFolderName} as it is not enabled in config`);
+						return;
+					}
+
+					log.debug(`Loading bundle ${bundleFolderName}`);
+
+					setupBundle(bundlePath);
 				}
+			}
+		}
 
-				// Prevent attempting to load unwanted directories. Those specified above and all dot-prefixed.
-				if (blacklistedBundleDirectories.includes(bundleFolderName) || bundleFolderName.startsWith('.')) {
-					return;
-				}
+		function setupBundle(bundlePath: string) {
+			if (!fs.statSync(bundlePath).isDirectory()) {
+				return;
+			}
 
-				if (nodecgConfig?.['bundles']?.disabled?.includes(bundleFolderName)) {
-					log.debug(`Not loading bundle ${bundleFolderName} as it is disabled in config`);
-					return;
-				}
+			log.debug(`Setting up bundle ${bundlePath}`);
 
-				if (
-					nodecgConfig?.['bundles']?.enabled &&
-					!nodecgConfig?.['bundles'].enabled.includes(bundleFolderName)
-				) {
-					log.debug(`Not loading bundle ${bundleFolderName} as it is not enabled in config`);
-					return;
-				}
+			// Parse each bundle and push the result onto the bundles array
+			const bundle = parseBundle(bundlePath); // TODO: Configs!
 
-				log.debug(`Loading bundle ${bundleFolderName}`);
+			// Check if the bundle is compatible with this version of NodeCG
+			if (!semver.satisfies(nodecgVersion, bundle.compatibleRange)) {
+				log.error(
+					'%s requires NodeCG version %s, current version is %s',
+					bundle.name,
+					bundle.compatibleRange,
+					nodecgVersion,
+				);
+				return;
+			}
 
-				// Parse each bundle and push the result onto the bundles array
-				const bundle = parseBundle(bundlePath, loadBundleCfg(cfgPath, bundleFolderName));
+			bundles.push(bundle);
 
-				// Check if the bundle is compatible with this version of NodeCG
-				if (!semver.satisfies(nodecgVersion, bundle.compatibleRange)) {
-					log.error(
-						'%s requires NodeCG version %s, current version is %s',
-						bundle.name,
-						bundle.compatibleRange,
-						nodecgVersion,
-					);
-					return;
-				}
-
-				bundles.push(bundle);
-
-				// Use `chokidar` to watch for file changes within bundles.
-				// Workaround for https://github.com/paulmillr/chokidar/issues/419
-				// This workaround is necessary to fully support symlinks.
-				// This is applied after the bundle has been validated and loaded.
-				// Bundles that do not properly load upon startup are not recognized for updates.
-				watcher.add([
-					path.join(bundlePath, '.git'), // Watch `.git` directories.
-					path.join(bundlePath, 'dashboard'), // Watch `dashboard` directories.
-					path.join(bundlePath, 'package.json'), // Watch each bundle's `package.json`.
-				]);
-			});
-		});
+			// Use `chokidar` to watch for file changes within bundles.
+			// Workaround for https://github.com/paulmillr/chokidar/issues/419
+			// This workaround is necessary to fully support symlinks.
+			// This is applied after the bundle has been validated and loaded.
+			// Bundles that do not properly load upon startup are not recognized for updates.
+			watcher.add([
+				path.join(bundlePath, '.git'), // Watch `.git` directories.
+				path.join(bundlePath, 'dashboard'), // Watch `dashboard` directories.
+				path.join(bundlePath, 'package.json'), // Watch each bundle's `package.json`.
+			]);
+		}
 	}
 
 	/**

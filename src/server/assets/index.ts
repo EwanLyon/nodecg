@@ -16,6 +16,7 @@ import type Replicator from '../replicant/replicator';
 import type ServerReplicant from '../replicant/server-replicant';
 import type { NodeCG } from '../../types/nodecg';
 import { stringifyError } from '../../shared/utils';
+import { AssetsPath } from '../util/file-paths';
 
 type Collection = {
 	name: string;
@@ -25,7 +26,7 @@ type Collection = {
 export default class AssetManager {
 	readonly log = createLogger('assets');
 
-	readonly assetsRoot = path.join(process.env.NODECG_ROOT, 'assets');
+	readonly assetsRoot = path.join(process.env.NODECG_ROOT, AssetsPath);
 
 	readonly collectionsRep: ServerReplicant<Collection[], NodeCG.Replicant.OptionsWithDefault<Collection[]>>;
 
